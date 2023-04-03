@@ -38,7 +38,7 @@ remove node_modules, package-lock.json in folder you cant start the project
 npm i 
 npm run dev
 
-#Task
+# Task
 
 Create simple users CRUD and events relation. On main page, need display table of all created users, table should represent all user records, with count of all events and date when next user event starting. When I click on userName in table I should see user profile page with user info and all related events. On user profile page I should be able create events for this user.
 Acceptance Criteria:
