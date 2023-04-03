@@ -1,0 +1,201 @@
+//Percent
+@function percent($px, $from) {
+	$result: math.div($px, $from) * 100%;
+	@return $result;
+}
+
+//REM
+@function rem($px) {
+	$result: math.div($px, 16)+rem;
+	@return $result;
+}
+
+//EM
+@function em($px, $current: 16) {
+	$result: math.div($px, $current)+em;
+	@return $result;
+}
+
+// Removes the unit (e.g. px, em, rem) from a value, returning the number only.
+// @param {Number} $num - Number to strip unit from.
+// @returns {Number} The same number, sans unit.
+@function strip-unit($num) {
+	@return math.div($num, ($num * 0 + 1));
+}
+
+// Converts a pixel value to matching rem value. *Any* value passed, regardless of unit, is assumed to be a pixel value.
+// By default, the base pixel value used to calculate the rem value is taken from the `$global-font-size` variable.
+// @access private
+// @param {Number} $value - Pixel value to convert.
+// @param {Number} $base [null] - Base for pixel conversion.
+// @returns {Number} A number in rems, calculated based on the given value and the base pixel value.
+// rem values are passed through as is.
+@function value-to-rem($value, $base: null) {
+	// Check if the value is a number
+	@if type-of($value) != 'number' {
+			@error inspect($value) + ' was passed to rem-calc(), which is not a number.';
+			@return $value;
+	}
+
+	// Transform em into rem if someone hands over 'em's
+	@if unit($value) == 'em' {
+			$value: strip-unit($value) * 1rem;
+	}
+
+	// Calculate rem if units for $value is not rem or em
+	@if unit($value) != 'rem' {
+			$value: math.div(strip-unit($value), strip-unit($base)) * 1rem;
+	}
+
+	// Turn 0rem into 0
+	@if $value == 0rem {
+			$value: 0;
+	}
+
+	@return $value;
+}
+
+// Converts one or more pixel values into matching rem values.
+// @param {Number|List} $values - One or more values to convert. Be sure to separate them with spaces and not commas.
+// If you need to convert a comma-separated list, wrap the list in parentheses.
+// @param {Number} $base [null] - The base value to use when calculating the `rem`.
+// If this parameter is `null`, the function will reference the `$global-font-size` variable as the base.
+// @returns {List} A list of converted values.
+// @function rem-calc($values, $base: null) {
+// 	$rem-values: ();
+// 	$count: length($values);
+
+// 	// If no base is defined, defer to the global font size
+// 	@if $base == null {
+// 			$base: $global-font-size;
+// 	}
+
+// 	// If the base font size is a %, then multiply it by 16px
+// 	// This is because 100% font size = 16px in most all browsers
+// 	@if unit($base) == '%' {
+// 			$base: ($base / 100%) * 16px;
+// 	}
+
+// 	// Using rem as base allows correct scaling
+// 	@if unit($base) == 'rem' {
+// 			$base: strip-unit($base) * 16px;
+// 	}
+
+// 	@if $count == 1 {
+// 			@return value-to-rem($values, $base);
+// 	}
+
+// 	@for $i from 1 through $count {
+// 			$rem-values: append($rem-values, value-to-rem(nth($values, $i), $base));
+// 	}
+
+// 	@return $rem-values;
+// }
+
+// Safely return a value from a map.
+// @param {Map} $map - Map to retrieve a value from.
+// @param {String} $key - Name of the map key.
+// @returns {List} Found value.
+@function map-safe-get($map, $key) {
+	@if (type-of($map) == 'map' or (type-of($map) == 'list' and length($map) == 0)) {
+			@if (map-has-key($map, $key)) {
+					@return map-get($map, $key);
+			} @else {
+					@error 'There is no key `#{$key}` in the list of keys `#{map-keys($map)}`';
+			}
+	} @else {
+			@error '`#{$map}` is not a valid map';
+	}
+}
+
+// @group functions
+// @access private
+// @param {Map} - $map - map object
+// @param {String} - $keys - keys list
+// @example scss - Usage
+// map-deep-get(map-name, key);
+
+@function map-deep-get($map, $keys...) {
+	@each $key in $keys {
+			$map: map-safe-get($map, $key);
+	}
+	@return $map;
+}
+
+// Return color from multidimensional color map. You can customize it by $color-map constant.
+// @group functions
+// @access public
+// @param {String} - $colorName - map value or color map property. required
+// @param {String} - $type - string of multidimensional key map
+// @param {Map} - $palette - multidimensional color map
+// @example scss - Usage
+//  .some-selector {
+//    color: color(a100, greyscale);
+//    color: color(primary);
+//  }
+
+
+@function color($colorName, $type: null, $palette: $color-map) {
+	$color: null;
+
+	@if (type_of($type) == string) {
+			$color: map-deep-get($palette, $type, $colorName);
+
+			@if (type_of($color) == color) {
+					@return $color;
+			} @else {
+					@error 'There is no key `#{$color}` in the list of keys `#{map-keys($type)}`';
+			}
+	} @else {
+			$color: map-get($palette, $colorName);
+
+			@if (type_of($color) == color) {
+					@return $color;
+			} @else {
+					@error 'There is no key `#{$colorName}` in the list of keys `#{map-keys($palette)}`';
+			}
+	}
+}
+
+@function encodecolor($string) {
+  @if type-of($string) == 'color' {
+      $hex: str-slice(ie-hex-str($string), 4);
+      $string: unquote("#{$hex}");
+  }
+
+  $string: '%23' + $string;
+  @return $string;
+}
+
+// Return svg icon code
+// @param {Map} $map - Map to retrieve a value from.
+// @param {Color} $fill-color - color of icon. #000 set by default.
+// @returns {String} encoded svg icon code.
+@function svg-icon-get($icon-map, $fill-color: color(defaultPrimary)) {
+	$path: map-safe-get($icon-map, 'path');
+	$sizeY: map-safe-get($icon-map, 'sizeY');
+	$sizeX: map-safe-get($icon-map, 'sizeX');
+	$fill-color: encodecolor($fill-color);
+	$icon: 'data:image/svg+xml;charset=utf8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 #{$sizeX} #{$sizeY}%22%3E'; // sass-lint:disable-line max-line-length
+
+	@if (map-has-key($icon-map, stroke-width)) {
+			$stroke-width: map-safe-get($icon-map, 'stroke-width');
+			$icon: 'data:image/svg+xml;charset=utf8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 #{$sizeX} #{$sizeY}%22%3E%3Cpath fill%3D%22none%22 stroke%3D%22#{$fill-color}%22 stroke-width%3D%22#{$stroke-width}%22 d%3D%22#{$path}%22%2F%3E%3C%2Fsvg%3E'; // sass-lint:disable-line max-line-length
+	} @else if map-has-key($icon-map, 'transform') {
+			$transform: map-safe-get($icon-map, 'transform');
+			$icon: 'data:image/svg+xml;charset=utf8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 #{$sizeX} #{$sizeY}%22%3E%3Cpath fill%3D%22none%22 stroke%3D%22#{$fill-color}%22 transform%3D%22#{$transform}%22 d%3D%22#{$path}%22%2F%3E%3C%2Fsvg%3E'; // sass-lint:disable-line max-line-length
+	} @else {
+			@if type_of($path) == 'map' {
+					@for $i from 1 through length($path) {
+							$item: map-safe-get($path, $i);
+							$icon: $icon + '%3Cpath fill%3D%22#{$fill-color}%22 d%3D%22#{$item}%22%2F%3E';
+					}
+			} @else {
+					$icon: $icon + '%3Cpath fill%3D%22#{$fill-color}%22 d%3D%22#{$path}%22%2F%3E';
+			}
+
+			$icon: $icon + '%3C%2Fsvg%3E';
+	}
+
+	@return $icon;
+}

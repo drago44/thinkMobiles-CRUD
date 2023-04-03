@@ -1,0 +1,28 @@
+.header {
+  background-color: wheat;
+  @include adaptiveValue('padding-top', 20, 10);
+  @include adaptiveValue('padding-bottom', 20, 10);
+
+  &__container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    @include adaptiveValue('column-gap', 60, 10);
+  }
+
+  &__logo {
+    font-weight: 700;
+    color: $secondColor;
+    transition: transform 0.3s ease;
+    @include adaptiveValue('font-size', 28, 24);
+
+    &:hover,
+    &:focus {
+      transform: scale(0.9);
+    }
+  }
+
+  &__menu {
+    flex: 1 1 auto;
+  }
+}
